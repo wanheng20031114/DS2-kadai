@@ -1,81 +1,30 @@
-# HelloWorld app
+## 追加した機能（青色ボタン）
 
-## Run the app
+以下のボタンは、通常の数値入力とは区別するため、**青色**で表示されています。
 
-### uv
+### 三角関数（角度制）
 
-Run as a desktop app:
+- `sin`：正弦関数  
+- `cos`：余弦関数  
+- `tan`：正接関数  
 
-```
-uv run flet run
-```
+入力された数値は **度（degree）** として扱い、内部でラジアンに変換して計算しています。
 
-Run as a web app:
+---
 
-```
-uv run flet run --web
-```
+### 対数関数
 
-### Poetry
+- `log`：常用対数（底 10）  
+- `ln`：自然対数  
 
-Install dependencies from `pyproject.toml`:
+※ 入力値が 0 以下の場合は計算できないため、`Error` を表示します。
 
-```
-poetry install
-```
+---
 
-Run as a desktop app:
+### 累乗計算
 
-```
-poetry run flet run
-```
+- `^`：べき乗演算  
 
-Run as a web app:
+例：  
+`2 ^ 3 = 8`
 
-```
-poetry run flet run --web
-```
-
-For more details on running the app, refer to the [Getting Started Guide](https://flet.dev/docs/getting-started/).
-
-## Build the app
-
-### Android
-
-```
-flet build apk -v
-```
-
-For more details on building and signing `.apk` or `.aab`, refer to the [Android Packaging Guide](https://flet.dev/docs/publish/android/).
-
-### iOS
-
-```
-flet build ipa -v
-```
-
-For more details on building and signing `.ipa`, refer to the [iOS Packaging Guide](https://flet.dev/docs/publish/ios/).
-
-### macOS
-
-```
-flet build macos -v
-```
-
-For more details on building macOS package, refer to the [macOS Packaging Guide](https://flet.dev/docs/publish/macos/).
-
-### Linux
-
-```
-flet build linux -v
-```
-
-For more details on building Linux package, refer to the [Linux Packaging Guide](https://flet.dev/docs/publish/linux/).
-
-### Windows
-
-```
-flet build windows -v
-```
-
-For more details on building Windows package, refer to the [Windows Packaging Guide](https://flet.dev/docs/publish/windows/).
