@@ -30,7 +30,7 @@ def fetch_json(url: str) -> dict | None:
         with urllib.request.urlopen(url, timeout=10) as response:
             return json.loads(response.read().decode('utf-8'))
     except Exception as e:
-        print(f"エラー / 错误: {e}")
+        print(f"エラー: {e}")
         return None
 
 
@@ -184,7 +184,7 @@ class WeatherApp(ft.Column):
         data = fetch_json(self.AREA_API_URL)
         
         if data is None:
-            self.show_error("地域データの取得に失敗しました / 获取地区数据失败")
+            self.show_error("地域データの取得に失敗しました")
             self.loading.visible = False
             self.update()
             return
@@ -237,7 +237,7 @@ class WeatherApp(ft.Column):
         data = fetch_json(url)
         
         if data is None:
-            self.show_error("天気データの取得に失敗しました / 获取天气数据失败")
+            self.show_error("天気データの取得に失敗しました")
             self.loading.visible = False
             self.update()
             return
@@ -253,28 +253,23 @@ class WeatherApp(ft.Column):
         天気予報データを表示する
         显示天气预报数据
         
+        
         Args:
-            data: 天気予報データ / 天气预报数据
+            data: 天気予報データ
         """
         self.weather_container.controls.clear()
         
         if not data or len(data) == 0:
-            self.show_error("天気データがありません / 没有天气数据")
+            self.show_error("予報データがありません")
             return
         
         try:
-            # 最初の予報データを取得 / 获取第一个预报数据
-            forecast = data[0]
-            time_series = forecast.get("timeSeries", [])
+            # 地域名と発表日時（短期予報から）
+            forecast_short = data[0]
+            publishing_office = forecast_short.get("publishingOffice", "")
+            report_datetime = forecast_short.get("reportDatetime", "")[:16].replace("T", " ")
             
-            if not time_series:
-                self.show_error("予報データがありません / 没有预报数据")
-                return
-            
-            # 地域名を表示 / 显示地区名称
-            publishing_office = forecast.get("publishingOffice", "")
-            report_datetime = forecast.get("reportDatetime", "")[:10]
-            
+            # ヘッダー情報
             self.weather_container.controls.append(
                 ft.Row(
                     [
@@ -285,96 +280,308 @@ class WeatherApp(ft.Column):
                     spacing=5
                 )
             )
+
+            # タブレイアウトの作成
+            tabs = ft.Tabs(
+                selected_index=0,
+                animation_duration=300,
+                tabs=[
+                    ft.Tab(
+                        text="詳細",
+                        icon=ft.Icons.TODAY,
+                        content=self.create_current_tab(data),
+                    ),
+                    ft.Tab(
+                        text="週間",
+                        icon=ft.Icons.CALENDAR_MONTH,
+                        content=self.create_weekly_tab(data),
+                    ),
+                ],
+                expand=True,
+                divider_color=self.colors["surface_variant"],
+                indicator_color=self.colors["primary"],
+                label_color=self.colors["primary"],
+                unselected_label_color=self.colors["text_secondary"],
+            )
             
-            # 天気予報（最初のtimeSeriesから）/ 天气预报（从第一个timeSeries）
-            weather_ts = time_series[0] if len(time_series) > 0 else None
-            
-            if weather_ts:
-                times = weather_ts.get("timeDefines", [])
-                areas = weather_ts.get("areas", [])
-                
-                if areas:
-                    area = areas[0]  # 最初の地域 / 第一个地区
-                    area_name = area.get("area", {}).get("name", "")
-                    weathers = area.get("weathers", [])
-                    
-                    self.weather_container.controls.append(
-                        ft.Container(
-                            margin=ft.margin.symmetric(vertical=15),
-                            content=ft.Row(
-                                [
-                                    ft.Icon(ft.Icons.LOCATION_ON, color=self.colors["primary"], size=20),
-                                    ft.Text(
-                                        area_name,
-                                        size=20,
-                                        weight=ft.FontWeight.BOLD,
-                                        color=self.colors["text_primary"],
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.CENTER
-                            )
-                        )
-                    )
-                    
-                    # 各日の天気を表示 / 显示每天的天气
-                    for i, time_def in enumerate(times):
-                        if i < len(weathers):
-                            date_str = time_def[:10]
-                            weather_full = weathers[i]
-                            # 簡略化：全角空白で区切って主要な天気だけ表示してもよいが、ここではそのまま
-                            weather_short = weather_full.split("　")[0] # 全角スペースで分割
-                            
-                            # 天気アイコン選択 / 选择天气图标
-                            icon = self.get_weather_icon(weather_full)
-                            
-                            card = ft.Container(
-                                padding=20,
-                                border_radius=16,
-                                bgcolor=self.colors["surface"],
-                                border=ft.border.all(1, self.colors["surface_variant"]),
-                                content=ft.Row(
-                                    controls=[
-                                        ft.Container(
-                                            content=ft.Text(icon, size=40),
-                                            padding=10,
-                                            bgcolor=self.colors["background"],
-                                            border_radius=12,
-                                        ),
-                                        ft.Column(
-                                            [
-                                                ft.Text(
-                                                    date_str,
-                                                    weight=ft.FontWeight.BOLD,
-                                                    color=self.colors["text_primary"],
-                                                    size=16,
-                                                ),
-                                                ft.Text(
-                                                    weather_short,
-                                                    color=self.colors["text_secondary"],
-                                                    size=14,
-                                                    overflow=ft.TextOverflow.ELLIPSIS,
-                                                ),
-                                            ],
-                                            alignment=ft.MainAxisAlignment.CENTER,
-                                            spacing=4,
-                                            expand=True,
-                                        ),
-                                    ],
-                                    spacing=15,
-                                    alignment=ft.MainAxisAlignment.START,
-                                ),
-                                shadow=ft.BoxShadow(
-                                    spread_radius=0,
-                                    blur_radius=10,
-                                    color=ft.Colors.BLACK26,
-                                    offset=ft.Offset(0, 4),
-                                ),
-                            )
-                            self.weather_container.controls.append(card)
+            self.weather_container.controls.append(
+                ft.Container(
+                    content=tabs,
+                    height=350,  # タブコンテンツの高さ
+                )
+            )
             
         except Exception as e:
             print(f"表示エラー / 显示错误: {e}")
             self.show_error(f"データの解析に失敗しました / 解析数据失败: {e}")
+
+    def create_current_tab(self, data: list) -> ft.Control:
+        """
+        詳細天気タブの内容を作成
+        创建详细天气标签页内容
+        """
+        content_col = ft.Column(spacing=20, scroll=ft.ScrollMode.AUTO)
+        
+        try:
+            # 1. 天気概況 (data[0]["timeSeries"][0])
+            ts_weather = data[0]["timeSeries"][0]
+            area_weather = ts_weather["areas"][0]
+            area_name = area_weather["area"]["name"]
+            current_weather = area_weather["weathers"][0]
+            
+            # 地域名表示
+            content_col.controls.append(
+                ft.Container(
+                    margin=ft.margin.only(top=10),
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.LOCATION_ON, color=self.colors["primary"], size=20),
+                            ft.Text(
+                                area_name,
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                                color=self.colors["text_primary"],
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    )
+                )
+            )
+            
+            # 現在の天気カード
+            icon = self.get_weather_icon(current_weather)
+            weather_short = current_weather.split("　")[0]
+            
+            # 気温データを取得 (data[0]["timeSeries"][2])
+            temp_display = ""
+            if len(data[0]["timeSeries"]) > 2:
+                ts_temps = data[0]["timeSeries"][2]
+                if ts_temps.get("areas"):
+                    temps = ts_temps["areas"][0].get("temps", [])
+                    if len(temps) >= 2:
+                        # temps[0] = 今日の最高気温、temps[1] = 今日の最低気温（または逆の場合もある）
+                        temp_display = f"{temps[0]}°C"
+                    elif len(temps) == 1:
+                        temp_display = f"{temps[0]}°C"
+            
+            weather_card = ft.Container(
+                padding=20,
+                border_radius=16,
+                bgcolor=self.colors["surface"],
+                border=ft.border.all(1, self.colors["surface_variant"]),
+                content=ft.Row(
+                    controls=[
+                        ft.Container(
+                            content=ft.Text(icon, size=48),
+                            padding=15,
+                            bgcolor=self.colors["background"],
+                            border_radius=12,
+                        ),
+                        ft.Column(
+                            [
+                                ft.Text(
+                                    "今日の天気",
+                                    color=self.colors["text_secondary"],
+                                    size=12,
+                                ),
+                                ft.Row(
+                                    [
+                                        ft.Text(
+                                            weather_short,
+                                            weight=ft.FontWeight.BOLD,
+                                            color=self.colors["text_primary"],
+                                            size=18,
+                                        ),
+                                        ft.Text(
+                                            temp_display,
+                                            weight=ft.FontWeight.BOLD,
+                                            color="#ef4444",  # Red for temperature
+                                            size=18,
+                                        ) if temp_display else ft.Container(),
+                                    ],
+                                    spacing=10,
+                                ),
+                                ft.Text(
+                                    current_weather,
+                                    color=self.colors["text_secondary"],
+                                    size=12,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                    max_lines=2,
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            spacing=4,
+                            expand=True,
+                        ),
+                    ],
+                    spacing=15,
+                ),
+            )
+            content_col.controls.append(weather_card)
+            
+            # 2. 降水確率 (data[0]["timeSeries"][1])
+            if len(data[0]["timeSeries"]) > 1:
+                ts_pop = data[0]["timeSeries"][1]
+                pops = ts_pop["areas"][0]["pops"]
+                times = ts_pop["timeDefines"]
+                
+                pop_row = ft.Row(scroll=ft.ScrollMode.AUTO, spacing=10)
+                
+                for i, time_str in enumerate(times):
+                    if i < len(pops):
+                        time_display = time_str[11:16] # 12:00
+                        pop_val = pops[i]
+                        
+                        pop_item = ft.Container(
+                            width=70,
+                            padding=10,
+                            border_radius=10,
+                            bgcolor=self.colors["surface"],
+                            border=ft.border.all(1, self.colors["surface_variant"]),
+                            content=ft.Column(
+                                [
+                                    ft.Text(time_display, size=12, color=self.colors["text_secondary"]),
+                                    ft.Icon(ft.Icons.WATER_DROP, size=16, color=self.colors["primary"]),
+                                    ft.Text(f"{pop_val}%", size=14, weight=ft.FontWeight.BOLD, color=self.colors["text_primary"]),
+                                ],
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=2
+                            )
+                        )
+                        pop_row.controls.append(pop_item)
+                
+                content_col.controls.append(
+                    ft.Column([
+                        ft.Text("降水確率 (6h)", size=14, color=self.colors["text_secondary"]),
+                        pop_row
+                    ], spacing=5)
+                )
+
+        except Exception as e:
+            print(f"詳細タブ生成エラー: {e}")
+            content_col.controls.append(ft.Text(f"データエラー: {e}", color=ft.Colors.RED))
+            
+        return ft.Container(content=content_col, padding=ft.padding.all(10))
+
+    def create_weekly_tab(self, data: list) -> ft.Control:
+        """
+        週間天気タブの内容を作成
+        创建周天气标签页内容
+        """
+        content_col = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
+        
+        try:
+            # 週間予報データがあるか確認 (通常は data[1])
+            if len(data) < 2:
+                return ft.Text("週間予報データがありません", color=self.colors["text_secondary"])
+
+            weekly_data = data[1]
+            if not weekly_data.get("timeSeries"):
+                return ft.Text("週間予報データがありません", color=self.colors["text_secondary"])
+
+            # 天気コード (timeSeries[0])
+            ts_weather = weekly_data["timeSeries"][0]
+            weather_codes = ts_weather["areas"][0].get("weatherCodes", [])
+            dates = ts_weather["timeDefines"]
+
+            # 気温 (timeSeries[1]) - 範囲情報などが含まれる
+            ts_temps = weekly_data["timeSeries"][1] if len(weekly_data["timeSeries"]) > 1 else None
+            temps_min = []
+            temps_max = []
+            
+            if ts_temps:
+                # tempsMin/Max はリストの場合と、空文字が含まれる場合がある
+                temps_min = ts_temps["areas"][0].get("tempsMin", [])
+                temps_max = ts_temps["areas"][0].get("tempsMax", [])
+
+            # 今日の気温を短期予報から取得（週間予報の最初の日は空の場合がある）
+            today_temp_high = None
+            today_temp_low = None
+            if len(data[0]["timeSeries"]) > 2:
+                ts_today = data[0]["timeSeries"][2]
+                if ts_today.get("areas"):
+                    today_temps = ts_today["areas"][0].get("temps", [])
+                    if len(today_temps) >= 1:
+                        today_temp_high = today_temps[0]  # 今日の最高気温
+                    if len(today_temps) >= 3:
+                        today_temp_low = today_temps[2]   # 明日の最低気温（今日の最低はないため）
+
+            for i, date_str in enumerate(dates):
+                if i < len(weather_codes):
+                    # 日付フォーマット (YYYY-MM-DD -> MM/DD)
+                    date_display = f"{date_str[5:7]}/{date_str[8:10]}"
+                    
+                    # 天気コードからアイコン
+                    code = weather_codes[i]
+                    icon = self.get_weather_icon_by_code(code)
+                    
+                    # 気温
+                    temp_text = ""
+                    t_min = temps_min[i] if i < len(temps_min) else "-"
+                    t_max = temps_max[i] if i < len(temps_max) else "-"
+                    
+                    # 見やすく整形
+                    if t_min == "" or t_min is None: t_min = "-"
+                    if t_max == "" or t_max is None: t_max = "-"
+                    
+                    # 今日の気温が空の場合、短期予報から取得
+                    if i == 0:
+                        if t_max == "-" and today_temp_high:
+                            t_max = today_temp_high
+                        if t_min == "-" and today_temp_low:
+                            t_min = today_temp_low
+                    
+                    item = ft.Container(
+                        padding=ft.padding.symmetric(vertical=8, horizontal=15),
+                        border_radius=10,
+                        bgcolor=self.colors["surface"],
+                        content=ft.Row(
+                            [
+                                ft.Text(date_display, width=50, color=self.colors["text_secondary"]),
+                                ft.Text(icon, size=24, width=40, text_align=ft.TextAlign.CENTER),
+                                ft.Row(
+                                    [
+                                        ft.Text(f"{t_max}°", color="#ef4444", weight=ft.FontWeight.BOLD), # Red
+                                        ft.Text("/", color=self.colors["text_secondary"]),
+                                        ft.Text(f"{t_min}°", color="#38bdf8", weight=ft.FontWeight.BOLD), # Blue
+                                    ],
+                                    spacing=5,
+                                    width=100,
+                                    alignment=ft.MainAxisAlignment.END
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                        )
+                    )
+                    content_col.controls.append(item)
+
+        except Exception as e:
+            print(f"週間タブ生成エラー: {e}")
+            content_col.controls.append(ft.Text(f"データエラー: {e}", color=ft.Colors.RED))
+
+        return ft.Container(content=content_col, padding=ft.padding.all(10))
+    
+    def get_weather_icon_by_code(self, code: str) -> str:
+        """
+        天気コードからアイコンを返す
+        根据天气代码返回图标
+        
+        100系: 晴れ
+        200系: 曇り
+        300系: 雨
+        400系: 雪
+        """
+        c = int(code)
+        if 100 <= c < 200:
+            return "☀️"
+        elif 200 <= c < 300:
+            return "☁️"
+        elif 300 <= c < 400:
+            return "🌧️"
+        elif 400 <= c < 500:
+            return "❄️"
+        else:
+            return "🌤️"
     
     def get_weather_icon(self, weather: str) -> str:
         """
@@ -426,7 +633,7 @@ def main(page: ft.Page):
         page: Fletページオブジェクト / Flet页面对象
     """
     # ページ設定 / 页面设置
-    page.title = "天気予報 / 天气预报"
+    page.title = "天気予報"
     page.bgcolor = "#0f172a" # Slate 900
     page.theme_mode = ft.ThemeMode.DARK # 強制ダークモード / 强制深色模式
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
