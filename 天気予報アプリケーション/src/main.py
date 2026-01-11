@@ -12,6 +12,7 @@
 import flet as ft
 import urllib.request
 import json
+from database import WeatherDatabase
 
 
 def fetch_json(url: str) -> dict | None:
@@ -50,6 +51,9 @@ class WeatherApp(ft.Column):
         构造函数：初始化UI组件
         """
         super().__init__()
+        
+        # データベースを初期化 / 初始化数据库
+        self.db = WeatherDatabase()
         
         # 地域データを格納する辞書 / 存储地区数据的字典
         self.offices = {}
@@ -192,6 +196,9 @@ class WeatherApp(ft.Column):
         # offices（都道府県レベル）を取得 / 获取offices（都道府县级别）
         self.offices = data.get("offices", {})
         
+        # 地域情報をデータベースに保存 / 将地区信息保存到数据库
+        self.db.save_offices(self.offices)
+        
         # ドロップダウンにオプションを追加 / 向下拉框添加选项
         options = []
         for code, info in self.offices.items():
@@ -241,6 +248,9 @@ class WeatherApp(ft.Column):
             self.loading.visible = False
             self.update()
             return
+        
+        # 天気情報をデータベースに保存 / 将天气信息保存到数据库
+        self.db.save_forecast(area_code, data)
         
         # 天気情報を表示 / 显示天气信息
         self.display_weather(data)
