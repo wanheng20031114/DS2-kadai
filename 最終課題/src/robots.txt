@@ -1,0 +1,28 @@
+User-Agent: *
+Disallow: /cgi-bin/
+Disallow: /B2B/
+Disallow: /*_trvmkt*
+
+
+Disallow: /package/jr/reserveStep/*
+
+
+Disallow: /HOTEL/5/*
+Disallow: /HOTEL/6/*
+Disallow: /HOTEL/1879/*
+Disallow: /HOTEL/31571/*
+Disallow: /HOTEL/39642/*
+Disallow: /HOTEL/107681/*
+Disallow: /HOTEL/146329/*
+Disallow: /HOTEL/146330/*
+Disallow: /HOTEL/146332/*
+Disallow: /HOTEL/146333/*
+Disallow: /HOTEL/146334/*
+Disallow: /HOTEL/146335/*
+Disallow: /HOTEL/146336/*
+Disallow: /HOTEL/146337/*
+Disallow: /HOTEL/146338/*
+Disallow: /HOTEL/146339/*
+Disallow: /HOTEL/146340/*
+Disallow: /HOTEL/196945/*
+Disallow: /HOTEL/109213/*
